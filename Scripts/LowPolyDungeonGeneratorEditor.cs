@@ -2,7 +2,6 @@ using UnityEditor;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using LowPolyDungeonGeneratorBypast12pm;
 using UnityEngine.Rendering;
 
 
@@ -15,7 +14,7 @@ namespace LowPolyDungeonGeneratorBypast12pm
         public Vector2Int size; // Width and Height
     }
 
-    public class LowPolyDungeonGeneratorEditor : EditorWindow
+    public class DungeonGenerator : EditorWindow
     {
         //[SerializeField]
         //private Vector2Int _startPosition;
@@ -60,7 +59,7 @@ namespace LowPolyDungeonGeneratorBypast12pm
         public static void ShowWindow()
         {
             isGeneratorOpenedFromToolbar = true;
-            GetWindow<LowPolyDungeonGeneratorEditor>("athaeck Dungeon Generator");
+            GetWindow<DungeonGenerator>("athaeck Dungeon Generator");
         }
 
         private void OnGUI()
