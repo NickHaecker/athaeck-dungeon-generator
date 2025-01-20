@@ -7,5 +7,5 @@ using UnityEngine;
 [Serializable]
 public class Room : Prefab
 {
-    public Vector2Int Size;
+    public Vector2 Size;
 }

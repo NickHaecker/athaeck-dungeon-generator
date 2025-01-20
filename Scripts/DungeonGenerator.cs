@@ -9,16 +9,6 @@ namespace ConnectingMinds
 {
     public class DungeonGenerator : EditorWindow
     {
-        //[SerializeField]
-        //private Vector2Int _startPosition;
-
-        //private class PathPrefab
-        //{
-        //    public Prefab prefab;
-        //    public int weight;
-        //}
-
-
         private PrefabLibrary _library;
 
         public int straightChance = 34;
@@ -35,10 +25,10 @@ namespace ConnectingMinds
         public float currentHeight = 0f;
         private int localHeight;
 
-        private Dictionary<Vector2Int, bool> occupiedCells = new Dictionary<Vector2Int, bool>();
+        private Dictionary<Vector2, bool> occupiedCells = new Dictionary<Vector2, bool>();
         private List<Prefab> pathPrefabs;
-        // Dictionary to store room sizes
-        private Dictionary<GameObject, Vector2Int> roomSizes;
+
+        private Dictionary<GameObject, Vector2> roomSizes;
 
         private Transform dungeonParent;
         private int maxPathLength;
@@ -47,6 +37,8 @@ namespace ConnectingMinds
         private string _defaultFolder = "";
 
         private string _name = "";
+
+        private float _padding = 0.125f;
 
 
         private Vector2 scrollPosition;
@@ -72,8 +64,6 @@ namespace ConnectingMinds
             dungeonSize = EditorGUILayout.IntField("Dungeon Size", dungeonSize);
 
             currentHeight = EditorGUILayout.FloatField("Starting Height", currentHeight);
-
-            //maxPathLength = EditorGUILayout.IntField("Maximum Path Length", maxPathLength);
 
             GUILayout.Label("Straight Prefabs", EditorStyles.boldLabel);
 
@@ -108,8 +98,6 @@ namespace ConnectingMinds
                 AddPrefabSlot(ref _library.Lefts);
             }
 
-            //leftChance = EditorGUILayout.IntField("Left Spawn Chance", leftChance);
-
             if (_library != null && _library.Lefts != null)
             {
                 for (int i = 0; i < _library.Lefts.Count; i++)
@@ -136,8 +124,6 @@ namespace ConnectingMinds
                 AddPrefabSlot(ref _library.Rights);
             }
 
-            //rightChance = EditorGUILayout.IntField("Right Spawn Chance", rightChance);
-
             if (_library != null && _library.Rights != null)
             {
                 for (int i = 0; i < _library.Rights.Count; i++)
@@ -163,7 +149,7 @@ namespace ConnectingMinds
             {
                 AddPrefabSlot(ref _library.BiSplits);
             }
-            //split1Chance = EditorGUILayout.IntField("Double Split Spawn Chance", split1Chance);
+
             if (_library != null && _library.BiSplits != null)
             {
                 for (int i = 0; i < _library.BiSplits.Count; i++)
@@ -189,7 +175,7 @@ namespace ConnectingMinds
             {
                 AddPrefabSlot(ref _library.TriSplits);
             }
-            //split2Chance = EditorGUILayout.IntField("Triple Split Spawn Chance", split2Chance);
+
             if (_library != null && _library.TriSplits != null)
             {
                 for (int i = 0; i < _library.TriSplits.Count; i++)
@@ -216,7 +202,6 @@ namespace ConnectingMinds
             {
                 AddPrefabSlot(ref _library.Rooms);
             }
-            //roomChance = EditorGUILayout.IntField("Room Spawn Chance", roomChance);
 
             if (_library != null && _library.Rooms != null)
             {
@@ -229,8 +214,8 @@ namespace ConnectingMinds
                     _library.Rooms[i].Model = (GameObject)EditorGUILayout.ObjectField($"Room Prefab {i + 1}", _library.Rooms[i].Model, typeof(GameObject), false);
 
                     EditorGUILayout.BeginHorizontal();
-                    _library.Rooms[i].Size.x = Mathf.Max(1, EditorGUILayout.IntField(_library.Rooms[i].Size.x, GUILayout.Width(50)));
-                    _library.Rooms[i].Size.y = Mathf.Max(1, EditorGUILayout.IntField(_library.Rooms[i].Size.y, GUILayout.Width(50)));
+                    _library.Rooms[i].Size.x = Mathf.Max(1, EditorGUILayout.FloatField(_library.Rooms[i].Size.x, GUILayout.Width(50)));
+                    _library.Rooms[i].Size.y = Mathf.Max(1, EditorGUILayout.FloatField(_library.Rooms[i].Size.y, GUILayout.Width(50)));
 
                     _library.Rooms[i].Weight = EditorGUILayout.IntField("Room Spawn Chance", _library.Rooms[i].Weight);
 
@@ -250,7 +235,6 @@ namespace ConnectingMinds
             {
                 AddPrefabSlot(ref _library.Stairs);
             }
-            //stairChance = EditorGUILayout.IntField("Stairs Spawn Chance", stairChance);
 
             if (_library != null && _library.Stairs != null)
             {
@@ -317,7 +301,6 @@ namespace ConnectingMinds
         {
             if (!isGeneratorOpenedFromToolbar)
             {
-                // Skip initialization if not opened from the toolbar (e.g., during Play Mode)
                 return;
             }
 
@@ -345,12 +328,12 @@ namespace ConnectingMinds
 
             if (_library == null || _library.BiSplits.Count == 0)
             {
-                AddPrefabSlot(ref _library.BiSplits); // Double Split
+                AddPrefabSlot(ref _library.BiSplits);
             }
 
             if (_library == null || _library.TriSplits.Count == 0)
             {
-                AddPrefabSlot(ref _library.TriSplits); // Triple Split
+                AddPrefabSlot(ref _library.TriSplits);
             }
 
             if (_library == null || _library.Rooms.Count == 0)
@@ -367,28 +350,23 @@ namespace ConnectingMinds
 
         private void AddTag(string tagName)
         {
-            // Open the Tag Manager
             SerializedObject tagManager = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
 
-            // Find the tags property
             SerializedProperty tagsProp = tagManager.FindProperty("tags");
 
-            // Check if the tag already exists (just in case)
             for (int i = 0; i < tagsProp.arraySize; i++)
             {
                 SerializedProperty tag = tagsProp.GetArrayElementAtIndex(i);
                 if (tag.stringValue == tagName)
                 {
-                    return; // Tag already exists
+                    return;
                 }
             }
 
-            // Add the new tag
             tagsProp.InsertArrayElementAtIndex(tagsProp.arraySize);
             SerializedProperty newTag = tagsProp.GetArrayElementAtIndex(tagsProp.arraySize - 1);
             newTag.stringValue = tagName;
 
-            // Apply changes to save the new tag
             tagManager.ApplyModifiedProperties();
 
             Debug.Log($"Tag '{tagName}' successfully created.");
@@ -419,42 +397,30 @@ namespace ConnectingMinds
             InitializePathPrefabs();
             occupiedCells.Clear();
 
-            remainingModules = dungeonSize; // Start with the total dungeon size
+            remainingModules = dungeonSize;
 
-            Vector2Int startPosition = Vector2Int.zero;
+            Vector2 startPosition = Vector2.zero;
             int startRotation = 0;
-
-            //int originalMaxPathLength = maxPathLength;
 
             GeneratePath(startPosition, startRotation, 10, localHeight, pathPrefabs);
 
             Debug.Log($"Dungeon generation complete. Total modules placed: {occupiedCells.Count} / {dungeonSize}");
 
-            Vector2Int dimensions = CalculateDungeonDimensions();
+            Vector2 dimensions = CalculateDungeonDimensions();
             Debug.Log($"Generated dungeon with dimensions: {dimensions.x}x{dimensions.y}");
         }
 
-        private void GeneratePath(Vector2Int startPosition, int startRotation, int maxPathLength, int localHeight, List<Prefab> weights)
+        private void GeneratePath(Vector2 startPosition, int startRotation, int maxPathLength, int localHeight, List<Prefab> weights)
         {
-            Vector2Int currentPosition = startPosition;
+            Vector2 currentPosition = startPosition;
             int currentRotation = startRotation;
             int yOffset = 0;
 
-
-            //int originalMaxPathLength = maxPathLength;
             Prefab nextPrefab = SelectPrefabWeighted(weights);
 
             for (int i = 0; i < maxPathLength; i++)
             {
-                /*if (remainingModules <= 0) // Stop if no modules are left to place
-                {
-                    PlacePrefab(deadEndPrefab, ref currentPosition, ref currentRotation, ref localHeight);
-                    return;
-                }*/
-                //PathPrefab nextPrefab = SelectPrefabWeighted();
-
-                //Prefab nextPrefab = nextPrefab == null ? SelectPrefabWeighted() : InitPathPrefabs(nextPrefab.Appends);
-                Vector2Int nextPosition = currentPosition + GetDirectionFromRotation(currentRotation);
+                Vector2 nextPosition = currentPosition + GetDirectionFromRotation(currentRotation);
 
                 Prefab end = _library.Ends.Find(e => e.Prepend.Contains(nextPrefab));
 
@@ -463,34 +429,29 @@ namespace ConnectingMinds
                     if (yOffset > 0)
                     {
                         nextPosition.y += yOffset;
-                        yOffset = 0; // Reset offset after applying
+                        yOffset = 0;
                     }
 
                     else if (_library.BiSplits.Contains(nextPrefab))
                     {
-                        //GameObject randomSplit1Prefab = _library.BiSplits[Random.Range(0, _library.BiSplits.Count)].Model;
-                        //nextPrefab.Model = randomSplit1Prefab;
-
                         PlacePrefab(nextPrefab, ref currentPosition, ref currentRotation, ref localHeight);
 
-                        GenerateBiSplit(currentPosition, currentRotation, 10, localHeight,nextPrefab.Append); // Continue path generation for Split1
-                        break; // Exit the loop after split is placed
+                        GenerateBiSplit(currentPosition, currentRotation, 10, localHeight,nextPrefab.Append);
+                        break;
                     }
                     else if (_library.TriSplits.Contains(nextPrefab))
                     {
-                        //GameObject randomSplit2Prefab = split2Prefabs[Random.Range(0, split2Prefabs.Length)];
-                        //nextPrefab.prefab = randomSplit2Prefab;
                         PlacePrefab(nextPrefab, ref currentPosition, ref currentRotation, ref localHeight);
 
-                        GenerateTriSplit(currentPosition, currentRotation, 10, localHeight,nextPrefab.Append); // Continue path generation for Split2
-                        break; // Exit the loop after split is placed
+                        GenerateTriSplit(currentPosition, currentRotation, 10, localHeight,nextPrefab.Append);
+                        break;
                     }
                     else if (_library.Rooms.Any(room => room == nextPrefab))
                     {
-                        //RefreshRoomPrefabs();
+
                         Room matchingRoom = _library.Rooms.First(room => room == nextPrefab);
 
-                        int skipDistance = matchingRoom.Size.y - 1;
+                        float skipDistance = matchingRoom.Size.y - 1;
 
                         PlacePrefab(nextPrefab, ref currentPosition, ref currentRotation, ref localHeight);
 
@@ -508,7 +469,6 @@ namespace ConnectingMinds
                     }
                     else
                     {
-                        //RefreshStraightPrefabs();
                         PlacePrefab(nextPrefab, ref currentPosition, ref currentRotation, ref localHeight);
 
                     }
@@ -519,14 +479,12 @@ namespace ConnectingMinds
                     if (remainingModules <= 0)
                     {
                        
-                        //Debug.Log($"Path generation stopped at {currentPosition} (Last module placed: {nextPrefab.prefab.name})");
                         PlacePrefab(end, ref currentPosition, ref currentRotation, ref localHeight);
                         break; // End the path generation
                     }
 
                     else if (maxPathLength <= 0)
                     {
-                        //Debug.Log($"Path generation stopped at {currentPosition} (Last module placed: {nextPrefab.prefab.name})");
                         PlacePrefab(end, ref currentPosition, ref currentRotation, ref localHeight);
                         break; // End the path generation
                     }
@@ -534,32 +492,34 @@ namespace ConnectingMinds
                     {
                         continue;
                     }
-                    //Debug.LogWarning($"Failed to place prefab {nextPrefab.prefab.name} at {nextPosition}. Skipping.");
-                    //continue; // Skip to the next iteration (try a different prefab)
+
                 }
 
                 if (remainingModules <= 0)
                 {
                     Debug.Log($"Path generation stopped at {currentPosition} (Last module placed: {nextPrefab.Model.name})");
                     PlacePrefab(end, ref currentPosition, ref currentRotation, ref localHeight);
-                    break; // End the path generation
+                    break;
                 }
 
                 if (maxPathLength <= 0)
                 {
                     Debug.Log($"Path generation stopped at {currentPosition} (Last module placed: {nextPrefab.Model.name})");
                     PlacePrefab(end, ref currentPosition, ref currentRotation, ref localHeight);
-                    break; // End the path generation
+                    break;
                 }
+
+                //currentPosition += new Vector2(_padding,_padding);
+
                 nextPrefab = InitPathPrefabs(nextPrefab.Append);
             }
-            maxPathLength = 10; // Reset maxPathLength to 5
+            maxPathLength = 10;
         }
         private void RefreshRoomPrefabs()
         {
             for (int i = 0; i < pathPrefabs.Count; i++)
             {
-                if (pathPrefabs[i].Weight == roomChance) // Assuming room prefabs have a specific weight
+                if (pathPrefabs[i].Weight == roomChance)
                 {
                     pathPrefabs[i] = GetRandomRoomPrefab();
                 }
@@ -576,44 +536,18 @@ namespace ConnectingMinds
             return _library.Rooms[Random.Range(0, _library.Rooms.Count)];
         }
 
-        //private void RefreshStraightPrefabs()
-        //{
-        //    for (int i = 0; i < pathPrefabs.Count; i++)
-        //    {
-        //        if (pathPrefabs[i].Weight == straightChance) // Assuming room prefabs have a specific weight
-        //        {
-        //            pathPrefabs[i] = new PathPrefab
-        //            {
-        //                prefab = GetRandomStraightPrefab(),
-        //                weight = straightChance // Maintain the same weight
-        //            };
-        //        }
-        //    }
-        //}
 
 
-        //private int GetRoomSkipDistance(GameObject roomPrefab)
-        //{
-        //    if (roomPrefab == stairsPrefab) return 1;
-        //    return 0; // Default, should not occur
-        //}
-
-
-        private void GenerateBiSplit(Vector2Int splitPosition, int splitRotation, int remainingModules, int localHeight,List<Prefab> appends)
+        private void GenerateBiSplit(Vector2 splitPosition, int splitRotation, int remainingModules, int localHeight,List<Prefab> appends)
         {
             Debug.Log($"[Split1] Generating Split1 at position {splitPosition} with rotation {splitRotation}");
 
-            //Debug.Log(currentHeight);
-
-            //if (remainingModules <= 0) return;
-
             List<Prefab> weights = appends;
-            //weights.AddRange(_library.Rooms);
 
-            int branchLength = 10; // Ensure at least 1 module per branch
+            int branchLength = 10;
 
             int leftRotation = (splitRotation - 90 + 360) % 360;
-            Vector2Int leftStart = splitPosition + GetDirectionFromRotation(leftRotation);
+            Vector2 leftStart = splitPosition + GetDirectionFromRotation(leftRotation);
             Debug.Log($"[Split1] Left branch starts at {leftStart} with rotation {leftRotation}");
 
             foreach (Prefab prefab in appends)
@@ -621,12 +555,12 @@ namespace ConnectingMinds
                 if (CanPlacePrefab(prefab.Model, leftStart, leftRotation))
                 {
                     Debug.Log($"[Split1] Placing left branch module at {leftStart}");
-                    PlacePrefab(prefab, ref splitPosition, ref leftRotation, ref localHeight, leftStart); // Use fixed position
+                    PlacePrefab(prefab, ref splitPosition, ref leftRotation, ref localHeight, leftStart);
 
-                    Vector2Int nextLeftPosition = splitPosition + GetDirectionFromRotation(leftRotation);
+                    Vector2 nextLeftPosition = splitPosition + GetDirectionFromRotation(leftRotation);
 
 
-                    GeneratePath(nextLeftPosition, leftRotation, branchLength, localHeight, weights); // Start path from the calculated position
+                    GeneratePath(nextLeftPosition, leftRotation, branchLength, localHeight, weights);
                     break;
                 }
                 else
@@ -636,19 +570,18 @@ namespace ConnectingMinds
             }
 
             int rightRotation = (splitRotation + 90) % 360;
-            Vector2Int rightStart = splitPosition + GetDirectionFromRotation(rightRotation);
+            Vector2 rightStart = splitPosition + GetDirectionFromRotation(rightRotation);
             Debug.Log($"[Split1] Right branch starts at {rightStart} with rotation {rightRotation}");
 
             foreach (Prefab prefab in appends)
             {
                 if (CanPlacePrefab(prefab.Model, rightStart, rightRotation))
                 {
-                    //Debug.Log($"[Split1] Placing right branch module at {rightStart}");
-                    PlacePrefab(prefab, ref splitPosition, ref rightRotation, ref localHeight, rightStart); // Use fixed position
+                    PlacePrefab(prefab, ref splitPosition, ref rightRotation, ref localHeight, rightStart);
 
-                    Vector2Int nextRightPosition = splitPosition + GetDirectionFromRotation(rightRotation);
+                    Vector2 nextRightPosition = splitPosition + GetDirectionFromRotation(rightRotation);
 
-                    GeneratePath(nextRightPosition, rightRotation, branchLength, localHeight, weights); // Start path from the calculated position
+                    GeneratePath(nextRightPosition, rightRotation, branchLength, localHeight, weights);
                     break;
                 }
                 else
@@ -658,19 +591,16 @@ namespace ConnectingMinds
             }
         }
 
-        private void GenerateTriSplit(Vector2Int splitPosition, int splitRotation, int remainingModules, int localHeight, List<Prefab> appends)
+        private void GenerateTriSplit(Vector2 splitPosition, int splitRotation, int remainingModules, int localHeight, List<Prefab> appends)
         {
             Debug.Log($"[Split2] Generating Split2 at position {splitPosition} with rotation {splitRotation}");
 
             List<Prefab> weights = appends;
-            //weights.AddRange(_library.Rooms);
 
-            //if (remainingModules <= 0) return;
-
-            int branchLength = 10; // Ensure at least 1 module per branch
+            int branchLength = 10;
 
             int leftRotation = (splitRotation - 90 + 360) % 360;
-            Vector2Int leftStart = splitPosition + GetDirectionFromRotation(leftRotation);
+            Vector2 leftStart = splitPosition + GetDirectionFromRotation(leftRotation);
             Debug.Log($"[Split2] Left branch starts at {leftStart} with rotation {leftRotation}");
 
             foreach (Prefab prefab in appends)
@@ -678,9 +608,9 @@ namespace ConnectingMinds
                 if (CanPlacePrefab(prefab.Model, leftStart, leftRotation))
                 {
                     Debug.Log($"[Split2] Placing left branch module at {leftStart}");
-                    PlacePrefab(prefab, ref splitPosition, ref leftRotation, ref localHeight, leftStart); // Fixed position
+                    PlacePrefab(prefab, ref splitPosition, ref leftRotation, ref localHeight, leftStart);
 
-                    Vector2Int nextLeftPosition = splitPosition + GetDirectionFromRotation(leftRotation);
+                    Vector2 nextLeftPosition = splitPosition + GetDirectionFromRotation(leftRotation);
 
                     GeneratePath(nextLeftPosition, leftRotation, branchLength, localHeight, weights);
                     break;
@@ -690,7 +620,7 @@ namespace ConnectingMinds
                     Debug.Log($"[Split2] Left branch failed to generate at {leftStart}. Skipping.");
                 }
             }
-            Vector2Int straightStart = splitPosition + GetDirectionFromRotation(splitRotation);
+            Vector2 straightStart = splitPosition + GetDirectionFromRotation(splitRotation);
             Debug.Log($"[Split2] Straight branch starts at {straightStart} with rotation {splitRotation}");
 
             foreach (Prefab prefab in appends)
@@ -698,9 +628,9 @@ namespace ConnectingMinds
                 if (CanPlacePrefab(prefab.Model, straightStart, splitRotation))
                 {
                     Debug.Log($"[Split2] Placing straight branch module at {straightStart}");
-                    PlacePrefab(prefab, ref splitPosition, ref splitRotation, ref localHeight, straightStart); // Fixed position
+                    PlacePrefab(prefab, ref splitPosition, ref splitRotation, ref localHeight, straightStart);
 
-                    Vector2Int nextStraightPosition = splitPosition + GetDirectionFromRotation(splitRotation);
+                    Vector2 nextStraightPosition = splitPosition + GetDirectionFromRotation(splitRotation);
 
                     GeneratePath(nextStraightPosition, splitRotation, branchLength, localHeight, weights);
                     break;
@@ -710,9 +640,9 @@ namespace ConnectingMinds
                     Debug.Log($"[Split2] Straight branch failed to generate at {straightStart}. Skipping.");
                 }
             }
-            // Generate Right Branch
+
             int rightRotation = (splitRotation + 90) % 360;
-            Vector2Int rightStart = splitPosition + GetDirectionFromRotation(rightRotation);
+            Vector2 rightStart = splitPosition + GetDirectionFromRotation(rightRotation);
             Debug.Log($"[Split2] Right branch starts at {rightStart} with rotation {rightRotation}");
 
             foreach (Prefab prefab in appends)
@@ -722,7 +652,7 @@ namespace ConnectingMinds
                     Debug.Log($"[Split2] Placing right branch module at {rightStart}");
                     PlacePrefab(prefab, ref splitPosition, ref rightRotation, ref localHeight, rightStart); // Fixed position
 
-                    Vector2Int nextRightPosition = splitPosition + GetDirectionFromRotation(rightRotation);
+                    Vector2 nextRightPosition = splitPosition + GetDirectionFromRotation(rightRotation);
 
                     GeneratePath(nextRightPosition, rightRotation, branchLength, localHeight, weights);
                     break;
@@ -746,9 +676,6 @@ namespace ConnectingMinds
 
         private Prefab InitPathPrefabs(List<Prefab> prefabs)
         {
-            //List<PathPrefab> weightedPaths = new List<PathPrefab>();
-            //pathPrefabs = prefabs;
-
             return SelectPrefabWeighted(prefabs);
         }
 
@@ -788,12 +715,12 @@ namespace ConnectingMinds
             return null;
         }
 
-        private bool CanPlacePrefab(GameObject prefab, Vector2Int position, int currentRotation)
+        private bool CanPlacePrefab(GameObject prefab, Vector2 position, int currentRotation)
         {
             if (roomSizes.ContainsKey(prefab))
             {
-                Vector2Int roomSize = roomSizes[prefab];
-                List<Vector2Int> occupiedRoomCells = GetOccupiedCells(position, roomSize, currentRotation);
+                Vector2 roomSize = roomSizes[prefab];
+                List<Vector2> occupiedRoomCells = GetOccupiedCells(position, roomSize, currentRotation);
 
                 Debug.Log($"[CanPlacePrefab] Checking room {prefab.name} at position {position} with size {roomSize} and rotation {currentRotation}");
 
@@ -802,7 +729,7 @@ namespace ConnectingMinds
                     if (occupiedCells.ContainsKey(cell))
                     {
                         Debug.LogWarning($"[CanPlacePrefab] Cell {cell} is occupied.");
-                        return false; // If any cell is occupied, return false
+                        return false;
                     }
                     else
                     {
@@ -814,7 +741,7 @@ namespace ConnectingMinds
             if (occupiedCells.ContainsKey(position))
             {
                 Debug.LogWarning($"[CanPlacePrefab] Position {position} is occupied by another module.");
-                return false; // If the position itself is occupied, return false
+                return false;
             }
             else
             {
@@ -823,7 +750,7 @@ namespace ConnectingMinds
             return true;
         }
 
-        private void PlacePrefab(Prefab prefab, ref Vector2Int position, ref int currentRotation, ref int localHeight, Vector2Int? fixedPosition = null)
+        private void PlacePrefab(Prefab prefab, ref Vector2 position, ref int currentRotation, ref int localHeight, Vector2? fixedPosition = null)
         {
             Debug.Log($"remaining modules  {remainingModules}");
             remainingModules--; // Decrement for the placed module
@@ -839,37 +766,30 @@ namespace ConnectingMinds
                 dungeonParent = parentObject.transform;
             }
 
-            Vector2Int placementPosition = fixedPosition ?? (position + GetDirectionFromRotation(currentRotation));
+            Vector2 placementPosition = fixedPosition ?? (position + GetDirectionFromRotation(currentRotation));
 
             int prefabRotation = currentRotation;
             if (_library.Lefts.Contains(prefab))
             {
-                //prefab = leftPrefabs[Random.Range(0, leftPrefabs.Length)];
                 currentRotation = (currentRotation - 90 + 360) % 360;
             }
             else if (_library.Rights.Contains(prefab))
             {
-                //prefab = rightPrefabs[Random.Range(0, rightPrefabs.Length)];
                 currentRotation = (currentRotation + 90) % 360;
             }
             else if (_library.Straights.Contains(prefab))
             {
-                //prefab = straightPrefabs[Random.Range(0, straightPrefabs.Length)];
+
 
             }
-            /*else if (roomPrefabs.Contains(prefab))
-            {
-                prefab = roomPrefabs[Random.Range(0, roomPrefabs.Length)];
-                currentRotation = (currentRotation + 90) % 360;
-            }*/
 
             Vector3 worldPosition = new Vector3(placementPosition.x * 2, localHeight, placementPosition.y * 2);
             if (_library.Stairs.Contains(prefab))
             {
-                localHeight += 2; // Increase the height for stairs
+                localHeight += 2;
 
-                // Mark the occupied cells for the stairsPrefab (1x2 size)
-                List<Vector2Int> stairsOccupiedCells = GetOccupiedCells(placementPosition, new Vector2Int(1, 2), prefabRotation);
+
+                List<Vector2> stairsOccupiedCells = GetOccupiedCells(placementPosition, new Vector2(1, 2), prefabRotation);
                 foreach (var cell in stairsOccupiedCells)
                 {
                     occupiedCells[cell] = true;
@@ -884,8 +804,8 @@ namespace ConnectingMinds
 
             if (roomSizes.ContainsKey(prefab.Model))
             {
-                Vector2Int roomSize = roomSizes[prefab.Model];
-                List<Vector2Int> occupiedRoomCells = GetOccupiedCells(placementPosition, roomSize, prefabRotation);
+                Vector2 roomSize = roomSizes[prefab.Model];
+                List<Vector2> occupiedRoomCells = GetOccupiedCells(placementPosition, roomSize, prefabRotation);
 
                 foreach (var cell in occupiedRoomCells)
                 {
@@ -910,41 +830,41 @@ namespace ConnectingMinds
         }
 
 
-        private List<Vector2Int> GetOccupiedCells(Vector2Int center, Vector2Int roomSize, int rotation)
+        private List<Vector2> GetOccupiedCells(Vector2 center, Vector2 roomSize, int rotation)
         {
-            List<Vector2Int> occupiedCells = new List<Vector2Int>();
-            int width = roomSize.x;
-            int height = roomSize.y;
+            List<Vector2> occupiedCells = new List<Vector2>();
+            float width = roomSize.x;
+            float height = roomSize.y;
 
-            for (int y = 0; y < height; y++) // Iterate through rows
+            for (float y = 0; y < height; y++) 
             {
-                for (int x = -width / 2; x <= width / 2; x++) // Iterate through columns
+                for (float x = -width / 2; x <= width / 2; x++) 
                 {
-                    // Flip both X and Y axes
-                    Vector2Int offset = new Vector2Int(-x, height - y - 1);
-                    offset = RotateOffset(offset, rotation); // Apply rotation
-                    occupiedCells.Add(center + offset); // Add to final list
+
+                    Vector2 offset = new Vector2(-x, height - y - 1);
+                    offset = RotateOffset(offset, rotation); 
+                    occupiedCells.Add(center + offset); 
                 }
             }
 
             return occupiedCells;
         }
 
-        private Vector2Int GetDirectionFromRotation(int rotation)
+        private Vector2 GetDirectionFromRotation(int rotation)
         {
             switch (rotation % 360)
             {
-                case 0: return Vector2Int.up;
-                case 90: return Vector2Int.right;
-                case 180: return Vector2Int.down;
-                case 270: return Vector2Int.left;
-                default: return Vector2Int.zero;
+                case 0: return Vector2.up + new Vector2(0,_padding);
+                case 90: return Vector2.right + new Vector2(_padding,0);
+                case 180: return Vector2.down - new Vector2(0,_padding);
+                case 270: return Vector2.left - new Vector2(_padding,0);
+                default: return Vector2.zero + new Vector2(_padding,_padding);
             }
         }
 
         private void InitializeRoomSizes()
         {
-            roomSizes = new Dictionary<GameObject, Vector2Int>();
+            roomSizes = new Dictionary<GameObject, Vector2>();
 
             foreach (var roomInfo in _library.Rooms)
             {
@@ -955,34 +875,34 @@ namespace ConnectingMinds
             }
         }
 
-        private Vector2Int RotateOffset(Vector2Int offset, int rotation)
+        private Vector2 RotateOffset(Vector2 offset, int rotation)
         {
             switch (rotation)
             {
                 case 90:
-                    return new Vector2Int(-offset.y, -offset.x); // Clockwise 90°
+                    return new Vector2(-offset.y, -offset.x); // Clockwise 90°
                 case 180:
-                    return new Vector2Int(-offset.x, -offset.y); // Upside down
+                    return new Vector2(-offset.x, -offset.y); // Upside down
                 case 270:
-                    return new Vector2Int(-offset.y, -offset.x); // Counterclockwise 90°
+                    return new Vector2(-offset.y, -offset.x); // Counterclockwise 90°
                 default: // 0 degrees
                     return offset;
             }
         }
 
-        private Vector2Int CalculateDungeonDimensions()
+        private Vector2 CalculateDungeonDimensions()
         {
             if (occupiedCells.Count == 0)
             {
                 Debug.LogWarning("No modules have been placed. Dungeon dimensions cannot be calculated.");
-                return Vector2Int.zero;
+                return Vector2.zero;
             }
 
-            // Extract all X and Y coordinates
-            int minX = int.MaxValue, maxX = int.MinValue;
-            int minY = int.MaxValue, maxY = int.MinValue;
 
-            foreach (var cell in occupiedCells.Keys)
+            float minX = int.MaxValue, maxX = int.MinValue;
+            float minY = int.MaxValue, maxY = int.MinValue;
+
+            foreach (Vector2 cell in occupiedCells.Keys)
             {
                 if (cell.x < minX) minX = cell.x;
                 if (cell.x > maxX) maxX = cell.x;
@@ -991,11 +911,11 @@ namespace ConnectingMinds
             }
 
             // Calculate width and length
-            int width = maxX - minX + 1;
-            int length = maxY - minY + 1;
+            float width = maxX - minX + 1;
+            float length = maxY - minY + 1;
 
             //Debug.Log($"Dungeon dimensions - Width: {width}, Length: {length}");
-            return new Vector2Int(width, length);
+            return new Vector2(width, length);
         }
 
     }
