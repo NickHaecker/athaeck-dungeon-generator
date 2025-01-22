@@ -11,12 +11,12 @@ namespace ConnectingMinds
     {
         private PrefabLibrary _library;
 
-        public int straightChance = 34;
+        public int straightChance = 15;
         public int leftChance = 15;
-        public int rightChance = 10;
-        public int _biSplitChance = 10;
+        public int rightChance = 15;
+        public int _biSplitChance = 15;
         public int _triSplitChance = 10;
-        public int roomChance = 20;
+        public int roomChance = 25;
         public int stairChance = 1;
 
 
