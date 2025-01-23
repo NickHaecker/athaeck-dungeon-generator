@@ -5,7 +5,7 @@ using System.Linq;
 using UnityEngine.Rendering;
 
 
-namespace ConnectingMinds
+namespace DungeonGenerator
 {
     public class DungeonGenerator : EditorWindow
     {

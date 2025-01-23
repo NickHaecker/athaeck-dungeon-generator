@@ -2,10 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
-[CreateAssetMenu(fileName = "End", menuName = "Data/Generator/End")]
-[Serializable]
-public class End : Prefab
+namespace DungeonGenerator
 {
-    public List<Prefab> Prepend = new List<Prefab>();
+    [CreateAssetMenu(fileName = "End", menuName = "Data/Generator/End")]
+    [Serializable]
+    public class End : Prefab
+    {
+        public List<Prefab> Prepend = new List<Prefab>();
+    }
 }
